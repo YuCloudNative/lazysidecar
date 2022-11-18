@@ -1,0 +1,83 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: lazysidecars.yucloudnative.io
+spec:
+  group: yucloudnative.io
+  names:
+    kind: LazySidecar
+    listKind: LazySidecarList
+    plural: lazysidecars
+    singular: lazysidecar
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: LazySidecar is the Schema for the lazysidecars API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: LazySidecarSpec defines the desired state of LazySidecar
+            properties:
+              egressHosts:
+                description: EgressHosts is used to add host to the outbound config
+                  to the sidecar; if nil, the default is "istio-system/*"
+                items:
+                  type: string
+                type: array
+              workloadSelector:
+                additionalProperties:
+                  type: string
+                description: WorkloadSelector is used to select the specific set of
+                  pods/VMs on which this `Sidecar` configuration should be applied.
+                  If omitted, the `Sidecar` configuration will be applied to all workload
+                  instances in the same namespace.
+                type: object
+            type: object
+          status:
+            description: LazySidecarStatus defines the observed state of LazySidecar
+            properties:
+              envoyFilterName:
+                description: EnvoyFilterName defines the EnvoyFilter name which is
+                  derived from LazySidecar
+                type: string
+              failedMsg:
+                description: Fail message when LazySidecar occurs error
+                type: string
+              lastUpdateTimestamp:
+                description: LastUpdateTime defines last update time of the LazySidecar
+                format: date-time
+                type: string
+              sidecarName:
+                description: Upstream defines the workload's upstream service Upstream
+                  []istiov1beta1.IstioEgressListener `json:"upstream,omitempty"` SidecarName
+                  defines the Sidecar name which is derived from LaySidecar
+                type: string
+              status:
+                description: Status defines the status of the LazySidecar,contains
+                  "Succeed" and "Failed"
+                type: string
+            required:
+            - status
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

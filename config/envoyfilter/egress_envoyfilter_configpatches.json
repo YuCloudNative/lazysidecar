@@ -1,0 +1,32 @@
+{
+  "workloadSelector": {
+    "labels": {
+      "istio": "egressgateway"
+    }
+  },
+  "configPatches": [
+    {
+      "applyTo": "HTTP_FILTER",
+      "match": {
+        "context": "GATEWAY",
+        "listener": {
+          "filterChain": {
+            "filter": {
+              "name": "envoy.filters.network.http_connection_manager"
+            }
+          }
+        }
+      },
+      "patch": {
+        "operation": "INSERT_BEFORE",
+        "value": {
+          "name": "envoy.filters.http.lua",
+          "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+            "inlineCode": "function envoy_on_request(request_handle)\n  -- Make an HTTP call to an upstream host with the following headers, body, and timeout.\n  req_headers = {}\n  for key, value in pairs(request_handle:headers())\n  do\n    req_headers[key]=value\n    request_handle:logInfo(key..\":\"..value)\n  end\n\n  -- req remote rest set sidecar info\n  local str_csm_cluster=\"outbound|8080||csmlazysidecar-backend.istio-system.svc.cluster.local\"\n  local csm_headers, csm_body = request_handle:httpCall(\n    str_csm_cluster\n    ,{\n    [\":method\"] = \"POST\",\n    [\":path\"] = \"/api/v1/invocation\",\n    [\":authority\"] = \"csmlazysidecar-backend.istio-system.svc.cluster.local:8080\",\n    [\":scheme\"] = \"http\",\n    [\"src\"] =request_handle:headers():get(\"src\"),\n    [\"des\"] =request_handle:headers():get(\":authority\")\n    }\n    ,nil\n    ,5000\n  )\n  request_handle:logInfo(\"csmdata:\"..csm_body)\n\n  -- Generate outbound cluster\n  local domain={}\n  local str_authority=request_handle:headers():get(\":authority\")\n\n  for v in string.gmatch(str_authority, \"[^:]+\") do\n      table.insert(domain,v)\n      request_handle:logInfo(v)\n  end\n  str_dst_cluster=\"outbound\"\n\n  if domain[2]  ~= nil then\n    str_dst_cluster=str_dst_cluster..\"|\".. domain[2]\n  end\n  str_dst_cluster=str_dst_cluster..\"||\"..domain[1]\n\n  request_handle:logInfo( str_dst_cluster)\n\n  -- Get request body\n  local req_body = request_handle:body()\n  local str_req_body = nil\n  if req_body ~= nil then\n     str_req_body = tostring(req_body:getBytes(0,req_body:length()))\n     request_handle:logInfo(str_req_body)\n  end\n\n  -- req dst service\n  local headers, body = request_handle:httpCall(\n    str_dst_cluster\n    ,req_headers\n    ,str_req_body\n    ,5000\n  )\n\n  -- direct return req\n  request_handle:respond(\n    headers,\n    body\n  )\nend"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: csm-egressgateway
+  namespace: istio-system
+data:
+  stream.conf: |-
+    stream {
+      server {
+          listen 53 udp;
+          proxy_connect_timeout 5s;
+          proxy_timeout 20s;
+          proxy_pass 127.0.0.1:15053;
+      }
+    }
+  nginx.conf: |-
+    user root;
+    worker_processes  1;
+    error_log  /dev/stderr warn;
+    pid        /var/run/nginx.pid;
+
+    worker_rlimit_nofile 65535;
+    env POD_IP;
+    env CSM_EGRESSGATEWAY_SERVICE_HOST;
+
+    events {
+        worker_connections  1024;
+         multi_accept on;
+         use epoll;
+    }
+
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+        charset utf-8,gbk;
+
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+
+        log_format  json escape=json '{'
+                      '"@timestamp":"$time_iso8601",'
+                      '"remote_addr":"$remote_addr",'
+                      '"request":"$request",'
+                      '"method":"$request_method",'
+                      '"uri":"$uri",'
+                      '"request_uri":"$request_uri",'
+                      '"scheme":"$scheme",'
+                      '"protocol":"$server_protocol",'
+                      '"host":"$host:$server_port",'
+                      '"status":"$status",'
+                      '"body_bytes_sent":"$body_bytes_sent",'
+                      '"http_referer":"$http_referer",'
+                      '"http_user_agent":"$http_user_agent",'
+                      '"http_x_forwarded_for":"$http_x_forwarded_for",'
+                      '"http_cookie":"$http_cookie",'
+                      '"userid":"$cookie_userid",'
+                      '"loginname":"$cookie_loginname",'
+                      '"usertype":"$cookie_type",'
+                      '"OU":"$cookie_OU",'
+                      '"deptname":"$cookie_deptname",'
+                      '"dept_id":"$cookie_dept_id",'
+                      '"dept_name":"$cookie_dept_name"'
+                      '}' ;
+
+        access_log  /dev/stdout  json;
+
+        sendfile        on;
+        #tcp_nopush     on;
+
+        keepalive_timeout  65;
+
+        #gzip  on;
+
+        client_max_body_size 2050m;
+        client_body_buffer_size 10240k;
+
+        client_header_buffer_size 64k;
+        large_client_header_buffers 4 32k;
+
+        include /etc/nginx/conf.d/*.conf;
+    }
+
+    include /etc/nginx/stream.d/*.conf;
+
+    daemon off;
+  default.conf: |-
+    resolver local=on;
+    lua_package_path '/etc/nginx/conf.d/lib/?.lua;;';
+    #resolver_timeout 3s;
+    server {
+
+        listen       80 ;
+
+        #server_name _;
+
+        proxy_redirect http:// $scheme://;
+        error_log  /dev/stdout info;
+        port_in_redirect on;
+
+        more_set_headers "Server: Guess";
+
+       location / {
+            set_by_lua $authority '
+              local headers = ngx.req.get_headers()
+              local host = headers["host"]
+
+              -- ngx.log(ngx.ERR, "request failed: ", err)
+              -- for key, value in pairs(headers)
+              -- do
+              --  ngx.log(ngx.ERR,key..":"..value)
+              -- end
+              ngx.log(ngx.WARN, "csm info host header: "..host)
+              return host
+            ';
+
+            access_by_lua '
+              local headers = ngx.req.get_headers()
+              local host = headers["host"]
+              local source = headers["src"]
+
+              if (string.find(host,"csm(-)egressgateway") ~= nil or  host == os.getenv("POD_IP) or host == os.getenv("CSM_EGRESSGATEWAY_SERVICE_HOST"))
+              then
+                 ngx.log(ngx.ERR, "error host: "..host)
+                 ngx.status = ngx.HTTP_SERVICE_UNAVAILABLE
+                 ngx.say("error service host: "..host)
+                 ngx.exit(ngx.HTTP_SERVICE_UNAVAILABLE)
+              end
+
+              local httpc = require("resty.http").new()
+
+              -- Single-shot requests use the `request_uri` interface.
+
+              local res, err = httpc:request_uri("http://csmlazysidecar-backend.istio-system.svc.cluster.local:8080/api/v1/invocation", {
+                method = "POST",
+                headers = {
+                  ["src"] = source,
+                  ["des"] = host,
+                },
+              })
+              if not res then
+                ngx.log(ngx.ERR, "request failed: ", err)
+              end
+
+            ';
+            proxy_pass http://$authority;
+            proxy_connect_timeout 5s;
+            proxy_intercept_errors on;
+            proxy_ignore_client_abort on;
+            proxy_ssl_session_reuse off;
+
+            set $connect_upgrade "";
+            if ($http_upgrade != ""){
+                set $connect_upgrade "Upgrade";
+            }
+            # support upgrading to websocket as required by kubectl exec/logs/...
+            proxy_http_version 1.1;
+            proxy_set_header   Upgrade $http_upgrade;
+            proxy_set_header   Connection $connect_upgrade;
+        }
+    }

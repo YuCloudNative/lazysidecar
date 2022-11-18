@@ -1,0 +1,33 @@
+{
+  "volumes": [
+    {
+      "name": "csm-egressgateway",
+      "configMap": {
+        "name": "csm-egressgateway",
+        "items": [
+          {
+            "key": "default.conf",
+            "path": "default.conf"
+          }
+        ],
+        "defaultMode": 420
+      }
+    }
+  ],
+  "containers": [
+    {
+      "name": "openresty",
+      "image": "docker.io/herbguo/openresty_lua:1.19.3.1",
+      "volumeMounts": [
+        {
+          "name": "csm-egressgateway",
+          "readOnly": true,
+          "mountPath": "/etc/nginx/conf.d/default.conf",
+          "subPath": "default.conf"
+        }
+      ],
+      "imagePullPolicy": "Always"
+    }
+  ],
+  "restartPolicy": "Always"
+}
