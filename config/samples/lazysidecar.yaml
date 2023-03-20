@@ -1,0 +1,7 @@
+apiVersion: yucloudnative.io/v1
+kind: LazySidecar
+metadata:
+  name: lazysidecar-sample
+spec:
+  workloadSelector:
+    foo: bar
