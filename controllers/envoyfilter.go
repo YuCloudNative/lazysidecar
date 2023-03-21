@@ -8,10 +8,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"text/template"
 
-	networkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,7 +95,7 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 		LazysidecarGatewayPort: "",
 	}
 
-	tpl, err := template.ParseFiles("config/envoyfilter/workload_envoyfilter_tpl.yaml")
+	tpl, err := template.ParseFiles("../config/envoyfilter/workload_envoyfilter.tpl")
 	if err != nil {
 		panic(err)
 	}

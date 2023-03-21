@@ -2,7 +2,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
   name: lazysidecar-{{ .Name }}
-  namespace: { { .Namespace } }
+  namespace: {{ .Namespace }}
 spec:
   configPatches:
     - applyTo: LISTENER
@@ -22,15 +22,15 @@ spec:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
               filter_disabled:
                 destination_port_range:
-                  start: { { .Port } }
-                  end: { { .Port + 1 } }
+                  start: {{ .Port }}
+                  end: {{ .Port }}
             - name: envoy.filters.listener.http_inspector
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector
               filter_disabled:
                 destination_port_range:
-                  start: { { .Port } }
-                  end: { { .Port + 1 } }
+                  start: {{ .Port }}
+                  end: {{ .Port }}
     - applyTo: FILTER_CHAIN
       match:
         context: SIDECAR_OUTBOUND
@@ -168,4 +168,4 @@ spec:
           name: csm-passthrough
   workloadSelector:
     labels:
-      app: { { .ServiceName } }
+      app: {{ .ServiceName }}
