@@ -5,6 +5,7 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -79,23 +81,6 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 	log := log.FromContext(ctx)
 	defaultEnvoyFilterName := v1.PREFIX + lazySidecar.Name
 
-	var workloadSelector *networkingv1alpha3.WorkloadSelector
-	if lazySidecar.Spec.WorkloadSelector != nil && len(lazySidecar.Spec.WorkloadSelector) != 0 {
-		// copy WorkloadSelector from LazySidecar
-		workloadSelector = &networkingv1alpha3.WorkloadSelector{
-			Labels: lazySidecar.Spec.WorkloadSelector,
-		}
-	}
-
-	type EnvoyFilterEnvoyConfigObjectPatches struct {
-		ConfigPatches []*networkingv1alpha3.EnvoyFilter_EnvoyConfigObjectPatch `json:"configPatches"`
-	}
-
-	configPatches := make([]*networkingv1alpha3.EnvoyFilter_EnvoyConfigObjectPatch, 0)
-	envoyFilterEnvoyConfigObjectPatches := EnvoyFilterEnvoyConfigObjectPatches{
-		ConfigPatches: configPatches,
-	}
-
 	efVars := struct {
 		ServiceName            string
 		Name                   string
@@ -116,26 +101,16 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 	if err != nil {
 		panic(err)
 	}
-	tpl.Execute(os.Stdout, &efVars)
+	var efBytes bytes.Buffer
+	err = tpl.Execute(&efBytes, &efVars)
+	if err != nil {
+		log.Error(err, "go template execute failed.")
+	}
 
-	// data, err := os.ReadFile("config/manager/workload_envoyfilter_config_patches.json")
-	// if err != nil {
-		// panic(err)
-	// }
-	// workloadEnvoyFilterPatches := string(data)
-	// log.Info("envoyfilter patches", "workloadEnvoyFilterPatches", workloadEnvoyFilterPatches)
-	// r.ConvertYaml2Struct(ctx, workloadEnvoyFilterPatches, &envoyFilterEnvoyConfigObjectPatches)
-	// r.ConvertJson2Struct(ctx, workloadEnvoyFilterPatches, &envoyFilterEnvoyConfigObjectPatches)
-
-	envoyfilter := &v1alpha3.EnvoyFilter{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaultEnvoyFilterName,
-			Namespace: lazySidecar.Namespace,
-		},
-		Spec: networkingv1alpha3.EnvoyFilter{
-			WorkloadSelector: workloadSelector,
-			ConfigPatches:    envoyFilterEnvoyConfigObjectPatches.ConfigPatches,
-		},
+	envoyfilter := &v1alpha3.EnvoyFilter{}
+	err = yaml.Unmarshal(efBytes.Bytes(), envoyfilter)
+	if err != nil {
+		log.Error(err, "go template execute failed.")
 	}
 
 	if err := ctrl.SetControllerReference(lazySidecar, envoyfilter, r.Scheme); err != nil {
