@@ -41,6 +41,18 @@ type LazySidecarSpec struct {
 	// This flag tells the controller to enable lazy sidecar mode. Defaults to true.
 	// +optional
 	// Enabled *bool `json:"enabled,omitempty"`
+
+	// Middleware list are used to bind services which are registered to the system and non-automatic recognized.
+	// +optional
+	MiddlewareList []Middleware `json:"middlewareList,omitempty"`
+}
+
+type Middleware struct {
+	ServiceName string `json:"serviceName"`
+	Namespace string `json:"namespace"`
+	Port int `json:"port"` 
+	Type string `json:"type"`
+	Protocol string `json:"protocol"`
 }
 
 // LazySidecarStatus defines the observed state of LazySidecar

@@ -124,6 +124,14 @@ func (r *LazySidecarReconciler) constructSidecarForLazySidecar(lazySidecar *v1.L
 			}
 		}
 	}
+
+	// Add middleware services
+	middleware := lazySidecar.Spec.MiddlewareList
+	for _, m := range middleware {
+		middlewareHost := fmt.Sprintf("%s/%s.%s.svc.cluster.local", m.Namespace, m.ServiceName, m.Namespace)
+		hostList = append(hostList, middlewareHost)
+	}
+
 	defaultEgressList := make([]*networkingv1beta1.IstioEgressListener, 0, 1)
 	defaultEgress := &networkingv1beta1.IstioEgressListener{
 		Hosts: hostList,

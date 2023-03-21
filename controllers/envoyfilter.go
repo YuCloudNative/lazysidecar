@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"text/template"
 
 	networkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -95,14 +96,36 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 		ConfigPatches: configPatches,
 	}
 
-	data, err := os.ReadFile("config/manager/workload_envoyfilter_config_patches.json")
+	efVars := struct {
+		ServiceName            string
+		Name                   string
+		Namespace              string
+		Port                   int
+		LazysidecarGateway     string
+		LazysidecarGatewayPort string
+	}{
+		ServiceName:            "",
+		Name:                   defaultEnvoyFilterName,
+		Namespace:              "",
+		Port:                   0,
+		LazysidecarGateway:     "",
+		LazysidecarGatewayPort: "",
+	}
+
+	tpl, err := template.ParseFiles("config/envoyfilter/workload_envoyfilter_tpl.yaml")
 	if err != nil {
 		panic(err)
 	}
-	workloadEnvoyFilterPatches := string(data)
-	log.Info("envoyfilter patches", "workloadEnvoyFilterPatches", workloadEnvoyFilterPatches)
+	tpl.Execute(os.Stdout, &efVars)
+
+	// data, err := os.ReadFile("config/manager/workload_envoyfilter_config_patches.json")
+	// if err != nil {
+		// panic(err)
+	// }
+	// workloadEnvoyFilterPatches := string(data)
+	// log.Info("envoyfilter patches", "workloadEnvoyFilterPatches", workloadEnvoyFilterPatches)
 	// r.ConvertYaml2Struct(ctx, workloadEnvoyFilterPatches, &envoyFilterEnvoyConfigObjectPatches)
-	r.ConvertJson2Struct(ctx, workloadEnvoyFilterPatches, &envoyFilterEnvoyConfigObjectPatches)
+	// r.ConvertJson2Struct(ctx, workloadEnvoyFilterPatches, &envoyFilterEnvoyConfigObjectPatches)
 
 	envoyfilter := &v1alpha3.EnvoyFilter{
 		ObjectMeta: metav1.ObjectMeta{
