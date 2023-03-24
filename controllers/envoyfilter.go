@@ -85,15 +85,17 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 		Namespace              string
 		LazysidecarGateway     string
 		LazysidecarGatewayPort string
+		WorkloadSelector       map[string]string
 	}{
 		Services:               lazySidecar.Spec.MiddlewareList,
 		Name:                   defaultEnvoyFilterName,
 		Namespace:              lazySidecar.Namespace,
 		LazysidecarGateway:     "lazysidecar-gateway",
 		LazysidecarGatewayPort: "80",
+		WorkloadSelector:       lazySidecar.Spec.WorkloadSelector,
 	}
 
-	tpl, err := template.ParseFiles("../config/envoyfilter/workload_envoyfilter.tpl")
+	tpl, err := template.ParseFiles("config/envoyfilter/workload_envoyfilter.tpl")
 	if err != nil {
 		panic(err)
 	}

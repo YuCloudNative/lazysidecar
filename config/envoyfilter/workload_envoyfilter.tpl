@@ -20,6 +20,7 @@ spec:
             - name: envoy.filters.listener.tls_inspector
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
+              {{ if len .Services }}
               filter_disabled:
                 or_match:
                   rules:
@@ -28,9 +29,11 @@ spec:
                     start: {{ .Port }}
                     end: {{ .Port }}
                   {{- end }}
+              {{ end }}
             - name: envoy.filters.listener.http_inspector
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector
+              {{ if len .Services }}
               filter_disabled:
                 or_match:
                   rules:
@@ -39,6 +42,7 @@ spec:
                     start: {{ .Port }}
                     end: {{ .Port }}
                   {{- end }}
+              {{ end }}
     - applyTo: FILTER_CHAIN
       match:
         context: SIDECAR_OUTBOUND
@@ -176,4 +180,6 @@ spec:
           name: csm-passthrough
   workloadSelector:
     labels:
-      app: {{ .ServiceName }}
+      {{ range $key, $value := .WorkloadSelector }}
+      {{ $key }}: {{ $value }}
+      {{ end }}

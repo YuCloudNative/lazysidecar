@@ -41,6 +41,29 @@ spec:
                 items:
                   type: string
                 type: array
+              middlewareList:
+                description: Middleware list are used to bind services which are registered
+                  to the system and non-automatic recognized.
+                items:
+                  properties:
+                    namespace:
+                      type: string
+                    port:
+                      type: integer
+                    protocol:
+                      type: string
+                    serviceName:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - namespace
+                  - port
+                  - protocol
+                  - serviceName
+                  - type
+                  type: object
+                type: array
               workloadSelector:
                 additionalProperties:
                   type: string

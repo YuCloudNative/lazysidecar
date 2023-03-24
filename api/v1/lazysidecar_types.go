@@ -49,10 +49,10 @@ type LazySidecarSpec struct {
 
 type Middleware struct {
 	ServiceName string `json:"serviceName"`
-	Namespace string `json:"namespace"`
-	Port int `json:"port"` 
-	Type string `json:"type"`
-	Protocol string `json:"protocol"`
+	Namespace   string `json:"namespace"`
+	Port        int    `json:"port"`
+	Type        string `json:"type"`
+	Protocol    string `json:"protocol"`
 }
 
 // LazySidecarStatus defines the observed state of LazySidecar
