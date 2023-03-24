@@ -80,19 +80,17 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 	defaultEnvoyFilterName := v1.PREFIX + lazySidecar.Name
 
 	efVars := struct {
-		ServiceName            string
+		Services               []v1.Middleware
 		Name                   string
 		Namespace              string
-		Port                   int
 		LazysidecarGateway     string
 		LazysidecarGatewayPort string
 	}{
-		ServiceName:            "",
+		Services:               lazySidecar.Spec.MiddlewareList,
 		Name:                   defaultEnvoyFilterName,
-		Namespace:              "",
-		Port:                   0,
-		LazysidecarGateway:     "",
-		LazysidecarGatewayPort: "",
+		Namespace:              lazySidecar.Namespace,
+		LazysidecarGateway:     "lazysidecar-gateway",
+		LazysidecarGatewayPort: "80",
 	}
 
 	tpl, err := template.ParseFiles("../config/envoyfilter/workload_envoyfilter.tpl")

@@ -21,16 +21,24 @@ spec:
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
               filter_disabled:
-                destination_port_range:
-                  start: {{ .Port }}
-                  end: {{ .Port }}
+                or_match:
+                  rules:
+                  {{ range .Services }}
+                  - destination_port_range:
+                    start: {{ .Port }}
+                    end: {{ .Port }}
+                  {{- end }}
             - name: envoy.filters.listener.http_inspector
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector
               filter_disabled:
-                destination_port_range:
-                  start: {{ .Port }}
-                  end: {{ .Port }}
+                or_match:
+                  rules:
+                  {{ range .Services }}
+                  - destination_port_range:
+                    start: {{ .Port }}
+                    end: {{ .Port }}
+                  {{- end }}
     - applyTo: FILTER_CHAIN
       match:
         context: SIDECAR_OUTBOUND
