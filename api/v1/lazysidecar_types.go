@@ -20,9 +20,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+type DeliveryStatus string
+
 const (
 	PREFIX       = "lazy-sidecar-"
 	DEFAULT_HOST = "istio-system/*"
+
+	Succeed                             string         = "Succeeded"
+	Failed                              string         = "Failed"
+	RESETCONFIG                         DeliveryStatus = "ResetConfig"
+	RESETWORKLOADSELECTOR               DeliveryStatus = "ResetWorkLoadSelector"
+	DONOTHING                           DeliveryStatus = "DoNothing"
+	DefaultEgressEnvoyFilterName        string         = "egressgateway-filter"
+	DefaultCsmEgressServiceName         string         = "csm-egressgateway"
+	DefaultCsmEgressDeploymentName      string         = "csm-egressgateway"
+	DefaultCsmEgressConfigmapName       string         = "csm-egressgateway"
+	CsmLazySidecarBackendServiceName    string         = "csmlazysidecar-backend"
+	CsmLazySidecarBackendDeploymentName string         = "csmlazysidecar-backend"
+	CsmLazySidecarControllerName        string         = "csmlazysidecar-controller"
+	ROOTNS                              string         = "istio-system"
 )
 
 // LazySidecarSpec defines the desired state of LazySidecar
