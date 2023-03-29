@@ -212,7 +212,7 @@
                             "prefix": "/"
                           },
                           "route": {
-                            "cluster": "outbound|80||csm-egressgateway.istio-system.svc.cluster.local"
+                            "cluster": "outbound|80||lazysidecar-proxy.istio-system.svc.cluster.local"
                           }
                         }
                       ]

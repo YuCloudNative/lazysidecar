@@ -28,19 +28,20 @@ const (
 	PREFIX       = "lazy-sidecar-"
 	DEFAULT_HOST = "istio-system/*"
 
-	Succeed                             string         = "Succeeded"
-	Failed                              string         = "Failed"
-	RESETCONFIG                         DeliveryStatus = "ResetConfig"
-	RESETWORKLOADSELECTOR               DeliveryStatus = "ResetWorkLoadSelector"
-	DONOTHING                           DeliveryStatus = "DoNothing"
-	DefaultEgressEnvoyFilterName        string         = "egressgateway-filter"
-	DefaultCsmEgressServiceName         string         = "csm-egressgateway"
-	DefaultCsmEgressDeploymentName      string         = "csm-egressgateway"
-	DefaultCsmEgressConfigmapName       string         = "csm-egressgateway"
-	CsmLazySidecarBackendServiceName    string         = "csmlazysidecar-backend"
-	CsmLazySidecarBackendDeploymentName string         = "csmlazysidecar-backend"
-	CsmLazySidecarControllerName        string         = "csmlazysidecar-controller"
-	ROOTNS                              string         = "istio-system"
+	Succeed                        string = "Succeeded"
+	Failed                         string = "Failed"
+	ROOTNS                         string = "istio-system"
+	DefaultLazysidecarName         string = "lazysidecar"
+	DefaultCsmEgressServiceName    string = "lazysidecar-proxy"
+	DefaultCsmEgressDeploymentName string = "lazysidecar-proxy"
+	DefaultCsmEgressConfigmapName  string = "lazysidecar-proxy-cm"
+	//RESETCONFIG                         DeliveryStatus = "ResetConfig"
+	//RESETWORKLOADSELECTOR               DeliveryStatus = "ResetWorkLoadSelector"
+	//DONOTHING                           DeliveryStatus = "DoNothing"
+	//DefaultEgressEnvoyFilterName        string         = "egressgateway-filter"
+	//CsmLazySidecarBackendServiceName    string         = "csmlazysidecar"
+	//CsmLazySidecarBackendDeploymentName string         = "csmlazysidecar"
+	//CsmLazySidecarControllerName        string         = "csmlazysidecar-controller"
 )
 
 // LazySidecarSpec defines the desired state of LazySidecar
@@ -80,16 +81,21 @@ type LazySidecarStatus struct {
 
 	// Status defines the status of the LazySidecar,contains "Succeed" and "Failed"
 	Status string `json:"status"`
-	// Fail message when LazySidecar occurs error
+
+	// FailedMsg when LazySidecar occurs error
 	// +optional
 	FailedMsg string `json:"failedMsg,omitempty"`
+
 	// LastUpdateTime defines last update time of the LazySidecar
 	LastUpdateTimestamp metav1.Time `json:"lastUpdateTimestamp,omitempty"`
+
 	// Upstream defines the workload's upstream service
 	// Upstream []istiov1beta1.IstioEgressListener `json:"upstream,omitempty"`
+
 	// SidecarName defines the Sidecar name which is derived from LaySidecar
 	// +optional
 	SidecarName string `json:"sidecarName,omitempty"`
+
 	// EnvoyFilterName defines the EnvoyFilter name which is derived from LazySidecar
 	// +optional
 	EnvoyFilterName string `json:"envoyFilterName,omitempty"`
@@ -97,6 +103,7 @@ type LazySidecarStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Namespaced,shortName=csmls
 
 // LazySidecar is the Schema for the lazysidecars API
 type LazySidecar struct {

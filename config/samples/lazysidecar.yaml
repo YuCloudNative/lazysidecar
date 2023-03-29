@@ -3,5 +3,11 @@ kind: LazySidecar
 metadata:
   name: lazysidecar-sample
 spec:
+  middlewareList:
+    - serviceName: mysql
+      namespace: mysql-ns
+      port: 3306
+      type: MYSQL
+      protocol: HTTP
   workloadSelector:
-    foo: bar
+    foo: bar123

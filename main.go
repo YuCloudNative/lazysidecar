@@ -18,6 +18,8 @@ package main
 
 import (
 	"flag"
+	"github.com/yucloudnative/lazysidecar/internal/routers"
+	"github.com/yucloudnative/lazysidecar/internal/routers/options"
 	"log"
 	"net/http"
 	"os"
@@ -39,8 +41,6 @@ import (
 
 	v1 "github.com/yucloudnative/lazysidecar/api/v1"
 	"github.com/yucloudnative/lazysidecar/controllers"
-	"github.com/yucloudnative/lazysidecar/internal/routers"
-	"github.com/yucloudnative/lazysidecar/internal/routers/options"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -108,11 +108,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.LazySidecarReconciler{
+	lazysidcar := &controllers.LazySidecarReconciler{
 		Client:      mgr.GetClient(),
 		IstioClient: ic,
 		Scheme:      mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}
+	if err = lazysidcar.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LazySidecar")
 		os.Exit(1)
 	}
@@ -124,12 +125,6 @@ func main() {
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
-	}
-
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
 
@@ -148,4 +143,11 @@ func main() {
 			log.Fatalf("s.ListenAndServe err: %v", err)
 		}
 	}()
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+
 }

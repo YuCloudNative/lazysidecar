@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"sort"
 
@@ -55,6 +57,12 @@ type LazySidecarReconciler struct {
 	Scheme      *runtime.Scheme
 }
 
+func init() {
+	if workLoadEnvoyFilterData == "" || csmEgressImage == "" || csmEgressWorkloadPort == "" || csmEgressWorkloadDefaultConfigData == "" || csmEgressWorkloadNginxConfigData == "" || csmEgressWorkloadStreamConfigData == "" {
+		panic("The related startup parameters are not set...")
+	}
+}
+
 //+kubebuilder:rbac:groups=yucloudnative.io,resources=lazysidecars,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=yucloudnative.io,resources=lazysidecars/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=yucloudnative.io,resources=lazysidecars/finalizers,verbs=update
@@ -67,7 +75,7 @@ type LazySidecarReconciler struct {
 func (r *LazySidecarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.Info("reconcile LazySidecar...")
-
+	r.Init()
 	// Get current LazySidecar
 	lazySidecar := &v1.LazySidecar{}
 	if err := r.Get(ctx, req.NamespacedName, lazySidecar); err != nil {
@@ -81,10 +89,20 @@ func (r *LazySidecarReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Reconcile CRs
 	r.ReconcileSidecar(ctx, lazySidecar)
 	r.ReconcileEnvoyFilter(ctx, lazySidecar)
-	r.ReconcileCsmEgressWorkLoad(ctx)
 	r.RewriteSeHostsToCsmLazySidecar(ctx, lazySidecar)
 
 	return ctrl.Result{}, nil
+}
+func (r *LazySidecarReconciler) Init() {
+	namespacedName := types.NamespacedName{
+		Name:      v1.DefaultLazysidecarName,
+		Namespace: v1.ROOTNS,
+	}
+	err := r.Get(context.Background(), namespacedName, ownerDeployment)
+	if err != nil {
+		logrus.Error("Failed to query controller: ", err)
+	}
+	r.ReconcileCsmEgressWorkLoad(context.Background())
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -101,6 +119,7 @@ func (r *LazySidecarReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *LazySidecarReconciler) ReconcileCsmEgressWorkLoad(ctx context.Context) {
+	r.CreateCsmSa(ctx)
 	r.CreateCsmEgressConfigMap(ctx)
 	r.CreateCsmEgressService(ctx)
 	r.CreateCsmEgressDeployment(ctx)
@@ -229,4 +248,18 @@ func (r *LazySidecarReconciler) RemoveDeriveSidecarHosts(ctx context.Context, in
 		logrus.Error("Remove sidecar hosts Failed: ", err)
 	}
 }
+func (r *LazySidecarReconciler) GetResources() corev1.ResourceRequirements {
+	resourceLimit := make(map[corev1.ResourceName]resource.Quantity)
+	memLimit := resource.NewQuantity(4*2^30, resource.DecimalSI)
+	resourceLimit[corev1.ResourceMemory] = *memLimit
 
+	resourceRequest := make(map[corev1.ResourceName]resource.Quantity)
+	memRequest := resource.NewQuantity(1*2^30, resource.DecimalSI)
+	resourceRequest[corev1.ResourceMemory] = *memRequest
+
+	resources := corev1.ResourceRequirements{
+		Limits:   resourceLimit,
+		Requests: resourceRequest,
+	}
+	return resources
+}

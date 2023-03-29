@@ -132,7 +132,7 @@ data:
 
               -- Single-shot requests use the `request_uri` interface.
 
-              local res, err = httpc:request_uri("http://csmlazysidecar-backend.istio-system.svc.cluster.local:8080/api/v1/invocation", {
+              local res, err = httpc:request_uri("http://lazysidecar.istio-system.svc.cluster.local:8080/api/v1/invocation", {
                 method = "POST",
                 headers = {
                   ["src"] = source,

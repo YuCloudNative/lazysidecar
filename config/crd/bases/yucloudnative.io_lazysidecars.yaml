@@ -12,6 +12,8 @@ spec:
     kind: LazySidecar
     listKind: LazySidecarList
     plural: lazysidecars
+    shortNames:
+    - ls
     singular: lazysidecar
   scope: Namespaced
   versions:
@@ -81,16 +83,15 @@ spec:
                   derived from LazySidecar
                 type: string
               failedMsg:
-                description: Fail message when LazySidecar occurs error
+                description: FailedMsg when LazySidecar occurs error
                 type: string
               lastUpdateTimestamp:
                 description: LastUpdateTime defines last update time of the LazySidecar
                 format: date-time
                 type: string
               sidecarName:
-                description: Upstream defines the workload's upstream service Upstream
-                  []istiov1beta1.IstioEgressListener `json:"upstream,omitempty"` SidecarName
-                  defines the Sidecar name which is derived from LaySidecar
+                description: SidecarName defines the Sidecar name which is derived
+                  from LaySidecar
                 type: string
               status:
                 description: Status defines the status of the LazySidecar,contains

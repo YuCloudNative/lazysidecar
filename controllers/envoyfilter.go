@@ -90,14 +90,15 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 		Services:               lazySidecar.Spec.MiddlewareList,
 		Name:                   defaultEnvoyFilterName,
 		Namespace:              lazySidecar.Namespace,
-		LazysidecarGateway:     "lazysidecar-gateway",
+		LazysidecarGateway:     v1.DefaultCsmEgressServiceName,
 		LazysidecarGatewayPort: "80",
 		WorkloadSelector:       lazySidecar.Spec.WorkloadSelector,
 	}
 
 	tpl, err := template.ParseFiles("config/envoyfilter/workload_envoyfilter.tpl")
 	if err != nil {
-		panic(err)
+		log.Error(err, "Parse go template files failed.")
+		return nil, err
 	}
 	var efBytes bytes.Buffer
 	err = tpl.Execute(&efBytes, &efVars)

@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  name: lazysidecar-{{ .Name }}
+  name: {{ .Name }}
   namespace: {{ .Namespace }}
 spec:
   configPatches:

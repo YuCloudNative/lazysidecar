@@ -26,13 +26,13 @@ configPatches:
               end
 
               -- req remote rest set sidecar info
-              local str_csm_cluster="outbound|8080||csmlazysidecar-backend.istio-system.svc.cluster.local"
+              local str_csm_cluster="outbound|8080||lazysidecar.istio-system.svc.cluster.local"
               local csm_headers, csm_body = request_handle:httpCall(
                 str_csm_cluster
                 ,{
                 [":method"] = "POST",
                 [":path"] = " /api/v1/invocation",
-                [":authority"] = "csmlazysidecar-backend.istio-system.svc.cluster.local:8080",
+                [":authority"] = "lazysidecar.istio-system.svc.cluster.local:8080",
                 [":scheme"] = "http",
                 ["src"] =request_handle:headers():get("src"),
                 ["des"] =request_handle:headers():get(":authority")

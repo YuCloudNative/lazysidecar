@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
+	github.com/sirupsen/logrus v1.8.1
 	k8s.io/apimachinery v0.25.0
 	k8s.io/client-go v0.25.0
 	sigs.k8s.io/controller-runtime v0.13.0
@@ -102,7 +103,7 @@ require (
 	istio.io/api v0.0.0-20220826132550-04f2b20dc284
 	istio.io/client-go v1.15.0
 	istio.io/pkg v0.0.0-20211222041310-9392eb0bfb51
-	k8s.io/api v0.25.0 // indirect
+	k8s.io/api v0.25.0
 	k8s.io/apiextensions-apiserver v0.25.0 // indirect
 	k8s.io/component-base v0.25.0 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
