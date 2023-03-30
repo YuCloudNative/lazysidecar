@@ -7,6 +7,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	networkingv1beta1 "istio.io/api/networking/v1beta1"
@@ -34,6 +35,7 @@ func (r *LazySidecarReconciler) ReconcileSidecar(ctx context.Context, lazySideca
 
 	r.syncWorkloadSelectorToSidecar(ctx, lazySidecar, sidecar)
 	r.syncEgressHostsToSidecar(ctx, lazySidecar, sidecar)
+	r.syncMiddlewareServiceToSidecar(lazySidecar, sidecar)
 	_, err = r.IstioClient.NetworkingV1beta1().Sidecars(sidecar.Namespace).Update(ctx, sidecar, metav1.UpdateOptions{})
 	if err != nil {
 		log.Error(err, "fail to update sidecar by LazySidecar.",
@@ -71,6 +73,18 @@ func (r *LazySidecarReconciler) syncWorkloadSelectorToSidecar(ctx context.Contex
 		sidecar.Spec.WorkloadSelector = nil
 	} else {
 		sidecar.Spec.WorkloadSelector.Labels = lazySidecar.Spec.WorkloadSelector
+	}
+}
+
+// syncMiddlewareServiceToSidecar is add middleware services to sidecar egress
+func (r *LazySidecarReconciler) syncMiddlewareServiceToSidecar(lazySidecar *v1.LazySidecar, sidecar *v1beta1.Sidecar) {
+	sort.Strings(sidecar.Spec.Egress[0].Hosts)
+	for _, m := range lazySidecar.Spec.MiddlewareList {
+		host := fmt.Sprintf("%s/%s.%s.svc.cluster.local", m.Namespace, m.ServiceName, m.Namespace)
+		index := sort.SearchStrings(sidecar.Spec.Egress[0].Hosts, host)
+		if !(index < len(sidecar.Spec.Egress[0].Hosts)) && sidecar.Spec.Egress[0].Hosts[index] != host {
+			sidecar.Spec.Egress[0].Hosts = append(sidecar.Spec.Egress[0].Hosts, host)
+		}
 	}
 }
 
