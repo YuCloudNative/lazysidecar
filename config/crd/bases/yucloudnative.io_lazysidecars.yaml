@@ -13,7 +13,7 @@ spec:
     listKind: LazySidecarList
     plural: lazysidecars
     shortNames:
-    - ls
+    - csmls
     singular: lazysidecar
   scope: Namespaced
   versions:

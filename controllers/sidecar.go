@@ -7,7 +7,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	networkingv1beta1 "istio.io/api/networking/v1beta1"
@@ -17,7 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/yucloudnative/lazysidecar/api/v1"
+	v1 "github.com/yucloudnative/lazysidecar/api/v1"
 )
 
 func (r *LazySidecarReconciler) ReconcileSidecar(ctx context.Context, lazySidecar *v1.LazySidecar) error {
@@ -78,29 +77,51 @@ func (r *LazySidecarReconciler) syncWorkloadSelectorToSidecar(ctx context.Contex
 
 // syncMiddlewareServiceToSidecar is add middleware services to sidecar egress
 func (r *LazySidecarReconciler) syncMiddlewareServiceToSidecar(lazySidecar *v1.LazySidecar, sidecar *v1beta1.Sidecar) {
-	sort.Strings(sidecar.Spec.Egress[0].Hosts)
+	if lazySidecar.Spec.MiddlewareList == nil || len(lazySidecar.Spec.MiddlewareList) == 0 {
+		return
+	}
+
+	hostList := make([]string, 0)
 	for _, m := range lazySidecar.Spec.MiddlewareList {
 		host := fmt.Sprintf("%s/%s.%s.svc.cluster.local", m.Namespace, m.ServiceName, m.Namespace)
-		index := sort.SearchStrings(sidecar.Spec.Egress[0].Hosts, host)
-		if !(index < len(sidecar.Spec.Egress[0].Hosts)) && sidecar.Spec.Egress[0].Hosts[index] != host {
-			sidecar.Spec.Egress[0].Hosts = append(sidecar.Spec.Egress[0].Hosts, host)
+		hostList = append(hostList, host)
+	}
+
+	// 去重 hostList
+	// TODO: 后续可以根据端口过滤
+	for _, e := range sidecar.Spec.Egress {
+		hl := e.Hosts
+		hl = append(hl, hostList...)
+		e.Hosts = removeDuplicateElement(hl)
+	}
+}
+
+func removeDuplicateElement(target []string) []string {
+	result := make([]string, 0, len(target))
+	temp := map[string]struct{}{}
+	for _, item := range target {
+		if _, ok := temp[item]; !ok {
+			temp[item] = struct{}{}
+			result = append(result, item)
 		}
 	}
+	return result
 }
 
 // overwrite egress hosts in sidecar by LazySidecar.Spec.EgressHosts
 func (r *LazySidecarReconciler) syncEgressHostsToSidecar(ctx context.Context, lazySidecar *v1.LazySidecar,
 	sidecar *v1beta1.Sidecar) {
 	hostList := make([]string, 0)
+	// lazysidecar hosts 如果为空，则添加 DEFAULT_HOST
 	if lazySidecar.Spec.EgressHosts == nil || len(lazySidecar.Spec.EgressHosts) == 0 {
 		// use default hosts overwriting sidecar egress hosts
 		hostList = append(hostList, v1.DEFAULT_HOST)
 	} else {
-		for _, host := range lazySidecar.Spec.EgressHosts {
-			if !strings.EqualFold(v1.DEFAULT_HOST, strings.TrimSpace(host)) {
-				hostList = append(hostList, host)
-			}
-		}
+		// lazysidecar hosts 如果不为空，则同步至 sidecar，且添加 DEFAULT_HOST
+		hl := make([]string, 0)
+		hl = append(hl, lazySidecar.Spec.EgressHosts...)
+		hl = append(hl, v1.DEFAULT_HOST)
+		hostList = removeDuplicateElement(hl)
 	}
 
 	if sidecar.Spec.Egress == nil || len(sidecar.Spec.Egress) == 0 {

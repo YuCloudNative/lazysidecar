@@ -26,8 +26,8 @@ spec:
                   rules:
                   {{ range .Services }}
                   - destination_port_range:
-                    start: {{ .Port }}
-                    end: {{ .Port }}
+                      start: {{ .Port }}
+                      end: {{ .Port }}
                   {{- end }}
               {{ end }}
             - name: envoy.filters.listener.http_inspector
@@ -39,8 +39,8 @@ spec:
                   rules:
                   {{ range .Services }}
                   - destination_port_range:
-                    start: {{ .Port }}
-                    end: {{ .Port }}
+                      start: {{ .Port }}
+                      end: {{ .Port }}
                   {{- end }}
               {{ end }}
     - applyTo: FILTER_CHAIN
@@ -65,13 +65,8 @@ spec:
               - http/1.1
               - h2
               - http/1.0
-            transport_protoco: raw_buffer
+            transport_protocol: raw_buffer
           filters:
-            - name: "lazysidecar.gateway.tcp_proxy"
-              typed_config:
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy"
-                stat_prefix: "PassthroughCluster"
-                cluster: PassthroughCluster
             - name: envoy.filters.network.http_connection_manager
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
@@ -155,7 +150,7 @@ spec:
                       name: csm-egressgateway
                       routes:
                         - decorator:
-                            operation: "{{ .LazysidecarGateway }}.istio-system.svc.cluster.local:36686/*"
+                            operation: istio-egressgateway.istio-system.svc.cluster.local:80/*
                           match:
                             prefix: /
                           route:

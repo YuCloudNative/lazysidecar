@@ -34,7 +34,10 @@ func (r *LazySidecarReconciler) ReconcileEnvoyFilter(ctx context.Context, lazySi
 	}
 
 	r.syncWorkloadSelectorToEnvoyFilter(ctx, lazySidecar, ef)
-	r.syncMiddlewarePortToEnvoyfilter(ctx, lazySidecar, ef)
+	err = r.syncMiddlewarePortToEnvoyfilter(ctx, lazySidecar, ef)
+	if err != nil {
+		return err
+	}
 	_, err = r.IstioClient.NetworkingV1alpha3().EnvoyFilters(ef.Namespace).Update(ctx, ef, metav1.UpdateOptions{})
 	if err != nil {
 		log.Error(err, "fail to update sidecar by LazySidecar.",
@@ -75,8 +78,15 @@ func (r *LazySidecarReconciler) syncWorkloadSelectorToEnvoyFilter(ctx context.Co
 	}
 }
 func (r *LazySidecarReconciler) syncMiddlewarePortToEnvoyfilter(ctx context.Context, lazySidecar *v1.LazySidecar,
-	ef *v1alpha3.EnvoyFilter) {
-
+	ef *v1alpha3.EnvoyFilter) error {
+	log := log.FromContext(ctx)
+	newEf, err := r.constructEnvoyFilterForLazySidecar(ctx, lazySidecar)
+	if err != nil {
+		log.Error(err, "construct envoyfilter failed.")
+		return err
+	}
+	ef.Spec = newEf.Spec
+	return nil
 }
 
 func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.Context,

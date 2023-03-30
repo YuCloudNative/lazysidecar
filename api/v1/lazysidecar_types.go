@@ -25,9 +25,8 @@ import (
 type DeliveryStatus string
 
 const (
-	PREFIX       = "lazy-sidecar-"
-	DEFAULT_HOST = "istio-system/*"
-
+	PREFIX                                = "lazysidecar-"
+	DEFAULT_HOST                          = "istio-system/*"
 	Succeed                        string = "Succeeded"
 	Failed                         string = "Failed"
 	ROOTNS                         string = "istio-system"
