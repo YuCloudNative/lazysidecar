@@ -85,7 +85,7 @@ func (r *LazySidecarReconciler) syncMiddlewarePortToEnvoyfilter(ctx context.Cont
 		log.Error(err, "construct envoyfilter failed.")
 		return err
 	}
-	ef.Spec = newEf.Spec
+	ef.Spec.ConfigPatches = newEf.Spec.ConfigPatches
 	return nil
 }
 
@@ -110,7 +110,14 @@ func (r *LazySidecarReconciler) constructEnvoyFilterForLazySidecar(ctx context.C
 		WorkloadSelector:       lazySidecar.Spec.WorkloadSelector,
 	}
 
-	tpl, err := template.ParseFiles("config/envoyfilter/workload_envoyfilter.tpl")
+	funcMap := template.FuncMap{
+		// The name "inc" is what the function will be called in the template text.
+		"inc": func(i int) int {
+			return i + 1
+		},
+	}
+
+	tpl, err := template.New("workload_envoyfilter.tpl").Funcs(funcMap).ParseFiles("config/envoyfilter/workload_envoyfilter.tpl")
 	if err != nil {
 		log.Error(err, "Parse go template files failed.")
 		return nil, err

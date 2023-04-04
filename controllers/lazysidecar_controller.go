@@ -58,9 +58,9 @@ type LazySidecarReconciler struct {
 }
 
 func init() {
-	// if workLoadEnvoyFilterData == "" || csmEgressImage == "" || csmEgressWorkloadPort == "" || csmEgressWorkloadDefaultConfigData == "" || csmEgressWorkloadNginxConfigData == "" || csmEgressWorkloadStreamConfigData == "" {
-	// 	panic("The related startup parameters are not set...")
-	// }
+	if workLoadEnvoyFilterData == "" || csmEgressImage == "" || csmEgressWorkloadPort == "" || csmEgressWorkloadDefaultConfigData == "" || csmEgressWorkloadNginxConfigData == "" || csmEgressWorkloadStreamConfigData == "" {
+		panic("The related startup parameters are not set...")
+	}
 }
 
 //+kubebuilder:rbac:groups=yucloudnative.io,resources=lazysidecars,verbs=get;list;watch;create;update;patch;delete

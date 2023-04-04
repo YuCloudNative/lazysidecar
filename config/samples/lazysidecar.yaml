@@ -3,6 +3,8 @@ kind: LazySidecar
 metadata:
   name: lazysidecar-sample
 spec:
+  egressHosts:
+  - test.default.svc.cluster.local
   middlewareList:
     - serviceName: mysql
       namespace: mysql-ns

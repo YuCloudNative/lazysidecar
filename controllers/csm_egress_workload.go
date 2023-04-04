@@ -6,15 +6,16 @@ package controllers
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/sirupsen/logrus"
-	"github.com/yucloudnative/lazysidecar/api/v1"
+	v1 "github.com/yucloudnative/lazysidecar/api/v1"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
 )
 
 const (
@@ -40,6 +41,17 @@ func (r *LazySidecarReconciler) GetCsmEgressConfigMap() *corev1.ConfigMap {
 			CsmEgressStreamConfigName:  csmEgressWorkloadStreamConfigData,
 		},
 	}
+
+	// f, err := ioutil.ReadFile("config/gateway/csm-egressgateway-cm.yaml")
+	// if err != nil {
+	// 	fmt.Println("read file failed", err)
+	// }
+	// configMap := &corev1.ConfigMap{}
+	// err = yaml.Unmarshal(f, configMap)
+	// if err != nil {
+	// 	fmt.Println("Parse file failed", err)
+	// }
+
 	if err := controllerutil.SetControllerReference(ownerDeployment, configMap, r.Scheme); err != nil {
 		logrus.Error("Set Reference: ", err)
 	}
@@ -208,6 +220,7 @@ func (r *LazySidecarReconciler) CreateCsmEgressConfigMap(ctx context.Context) {
 		logrus.Error(err)
 	}
 }
+
 func (r *LazySidecarReconciler) CreateCsmSa(ctx context.Context) {
 	defaultGlobalSidecarSa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{

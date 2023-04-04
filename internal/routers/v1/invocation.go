@@ -14,7 +14,6 @@ package v1
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -22,10 +21,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"istio.io/pkg/log"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/yucloudnative/lazysidecar/api/v1"
+	v1 "github.com/yucloudnative/lazysidecar/api/v1"
 	"github.com/yucloudnative/lazysidecar/internal/routers/options"
 	res "github.com/yucloudnative/lazysidecar/pkg/response"
 	"github.com/yucloudnative/lazysidecar/pkg/utils"
@@ -38,6 +35,7 @@ const (
 	nodeLabelsKeySecurityTlsMode          = "security.istio.io/tlsMode"
 	nodeLabelsKeyServiceCanonicalName     = "service.istio.io/canonical-name"
 	nodeLabelsKeyServiceCanonicalRevision = "service.istio.io/canonical-revision"
+	nodeLabelsKeyRev                      = "istio.io/rev"
 
 	FQDNSuffix = ".svc.cluster.local"
 )
@@ -58,6 +56,7 @@ func NewInvocation(opts *options.Options) Invocation {
 	excludeKeys = append(excludeKeys, nodeLabelsKeySecurityTlsMode)
 	excludeKeys = append(excludeKeys, nodeLabelsKeyServiceCanonicalName)
 	excludeKeys = append(excludeKeys, nodeLabelsKeyServiceCanonicalRevision)
+	excludeKeys = append(excludeKeys, nodeLabelsKeyRev)
 
 	return Invocation{
 		opts:        opts,
@@ -73,6 +72,7 @@ func (i Invocation) Report(c *gin.Context) {
 	if err := c.ShouldBindHeader(&h); err != nil {
 		c.JSON(200, err)
 	}
+	log.Info("H: ", h)
 
 	// 解析 source metadata
 	workloadSelector, sn, err := i.ParseWorkloadLabels(h.Source)
@@ -87,6 +87,7 @@ func (i Invocation) Report(c *gin.Context) {
 		fmt.Println("parse destination host failed")
 		return
 	}
+	log.Info("Host: ", host)
 
 	// informer := i.opts.IstioInformer.Networking().V1alpha3().EnvoyFilters()
 	// 从 apiserver 同步资源，即 list
@@ -104,11 +105,15 @@ func (i Invocation) Report(c *gin.Context) {
 		// on deleted requests.
 		return
 	}
-	fmt.Println("lazysidecar list:", lazySidecars)
+	// fmt.Printf("lazysidecar list: %v", lazySidecars)
 	for _, ls := range lazySidecars.Items {
 		ws := ls.Spec.WorkloadSelector
 		if isSourceMatched(workloadSelector, ws) {
-			i.syncLazySidecar(c, ls, host)
+			log.Info("Matched!")
+			err := i.syncLazySidecar(c, ls, host)
+			if err != nil {
+				log.Error("Patch errors: ", err)
+			}
 		}
 	}
 
@@ -125,7 +130,7 @@ func (i Invocation) ParseWorkloadLabels(sourceMetadata string) (map[string]strin
 	metadata := &structpb.Struct{}
 	err = proto.Unmarshal(rawBytes, metadata)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 	}
 
 	mdFields := metadata.GetFields()
@@ -133,7 +138,7 @@ func (i Invocation) ParseWorkloadLabels(sourceMetadata string) (map[string]strin
 		mdFields[nodeLabelsKey] == nil ||
 		mdFields[nodeLabelsKey].GetStructValue() == nil ||
 		mdFields[nodeLabelsKey].GetStructValue().GetFields() == nil {
-		fmt.Printf("Get node labels failed.")
+		log.Error("Get node labels failed.")
 		// TODO: 构造 Error
 		return nil, "", nil
 	}
@@ -148,11 +153,11 @@ func (i Invocation) ParseWorkloadLabels(sourceMetadata string) (map[string]strin
 			workloadSelector[k] = v.GetStringValue()
 		}
 	}
-	fmt.Printf("%#v\n", workloadSelector)
+	log.Info("%#v\n", workloadSelector)
 
 	sn := mdFields[nodeNamespaceKey].GetStringValue()
 	if len(sn) == 0 {
-		fmt.Printf("Get node namespace failed.")
+		log.Error("Get node namespace failed.")
 		// TODO: 构造 Error
 		return nil, "", nil
 	}
@@ -216,12 +221,7 @@ func (i *Invocation) syncLazySidecar(ctx *gin.Context, ls v1.LazySidecar, newHos
 			return nil
 		}
 	}
-	patch := utils.PatchEgressHost{
-		Op:    "add",
-		Path:  "/spec/egressHosts/-",
-		Value: newHost,
-	}
-	patchByte, _ := json.Marshal(patch)
 
-	return mgr.GetClient().Patch(ctx, &ls, client.RawPatch(types.JSONPatchType, patchByte))
+	ls.Spec.EgressHosts = append(ls.Spec.EgressHosts, newHost)
+	return mgr.GetClient().Update(ctx, &ls)
 }

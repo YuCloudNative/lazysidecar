@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: csm-egressgateway
+  name: lazysidecar-proxy-cm
   namespace: istio-system
 data:
   stream.conf: |-

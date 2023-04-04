@@ -130,16 +130,16 @@ func main() {
 
 	options := options.New(&mgr)
 	router := routers.NewRouter(options)
-	s := &http.Server{
-		Addr:           httpServerAddr,
-		Handler:        router,
-		ReadTimeout:    60,
-		WriteTimeout:   60,
-		MaxHeaderBytes: 1 << 20,
-	}
+	// s := &http.Server{
+	// 	Addr:           httpServerAddr,
+	// 	Handler:        router,
+	// 	ReadTimeout:    60,
+	// 	WriteTimeout:   60,
+	// 	MaxHeaderBytes: 1 << 20,
+	// }
 
 	go func() {
-		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := router.Run(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("s.ListenAndServe err: %v", err)
 		}
 	}()

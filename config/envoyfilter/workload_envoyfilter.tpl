@@ -20,28 +20,38 @@ spec:
             - name: envoy.filters.listener.tls_inspector
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
-              {{ if len .Services }}
+              {{ if gt (len .Services) 1 }}
               filter_disabled:
                 or_match:
                   rules:
                   {{ range .Services }}
                   - destination_port_range:
                       start: {{ .Port }}
-                      end: {{ .Port }}
-                  {{- end }}
+                      end: {{ inc .Port 1 }}
+                  {{ end }}
+              {{ else if eq (len .Services) 1 }}
+              filter_disabled:
+                destination_port_range:
+                  start: {{ (index .Services 0).Port }}
+                  end: {{ inc (index .Services 0).Port }}
               {{ end }}
             - name: envoy.filters.listener.http_inspector
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector
-              {{ if len .Services }}
+              {{ if gt (len .Services) 1 }}
               filter_disabled:
                 or_match:
                   rules:
                   {{ range .Services }}
                   - destination_port_range:
                       start: {{ .Port }}
-                      end: {{ .Port }}
-                  {{- end }}
+                      end: {{ inc .Port 1 }}
+                  {{ end }}
+              {{ else if eq (len .Services) 1 }}
+              filter_disabled:
+                destination_port_range:
+                  start: {{ (index .Services 0).Port }}
+                  end: {{ inc (index .Services 0).Port }}
               {{ end }}
     - applyTo: FILTER_CHAIN
       match:
