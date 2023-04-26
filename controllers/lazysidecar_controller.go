@@ -19,10 +19,11 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"sort"
+
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/sirupsen/logrus"
 	v1 "github.com/yucloudnative/lazysidecar/api/v1"
@@ -86,10 +87,16 @@ func (r *LazySidecarReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	instancesNamespacedName := types.NamespacedName{
+		Name:      v1.PREFIX + req.Name,
+		Namespace: req.Namespace,
+	}
+
 	// Reconcile CRs
 	r.ReconcileSidecar(ctx, lazySidecar)
 	r.ReconcileEnvoyFilter(ctx, lazySidecar)
 	r.RewriteSeHostsToCsmLazySidecar(ctx, lazySidecar)
+	r.RewriteCsmLazySidecarStatus(ctx, instancesNamespacedName, lazySidecar)
 
 	return ctrl.Result{}, nil
 }
@@ -184,6 +191,50 @@ func (r *LazySidecarReconciler) RewriteSeHostsToCsmLazySidecar(ctx context.Conte
 				logrus.Error("Failed to update csmLazySidecar add new serviceEntry Hosts: ", err)
 			}
 		}
+	}
+}
+
+func (r *LazySidecarReconciler) RewriteCsmLazySidecarStatus(ctx context.Context, instancesNamespacedName types.NamespacedName, instance *v1.LazySidecar) {
+	sidecar := &v1beta1.Sidecar{}
+	err := r.Get(ctx, instancesNamespacedName, sidecar)
+	if err != nil {
+		logrus.Error("Get csmLazySidecar derived sidecar error", err)
+		instance.Status.Status = "Failed"
+		instance.Status.FailedMsg = err.Error()
+	} else {
+		instance.Status.SidecarName = sidecar.Name
+		instance.Status.EnvoyFilterName = v1.PREFIX + instance.Name
+		instance.Status.Status = "Succeed"
+		upstream := make([]v1.Upstream, 0)
+		for _, egress := range sidecar.Spec.Egress {
+			u := v1.Upstream{
+				Port: func() *int {
+					if egress.Port != nil {
+						port := int(egress.Port.Number)
+						return &port
+					}
+					return nil
+				}(),
+				Protocol: func() string {
+					if egress.Port != nil {
+						return egress.Port.Protocol
+					}
+					return ""
+				}(),
+				Hosts: egress.Hosts,
+			}
+			upstream = append(upstream, u)
+		}
+		instance.Status.Upstream = upstream
+		r.UpdateStatus(ctx, instance)
+	}
+
+}
+
+func (r *LazySidecarReconciler) UpdateStatus(ctx context.Context, instance *v1.LazySidecar) {
+	instance.Status.LastUpdateTimestamp = metav1.Now()
+	if err := r.Status().Update(ctx, instance); err != nil {
+		logrus.Error(err, " update CsmLazySidecar instance error")
 	}
 }
 

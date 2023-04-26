@@ -97,6 +97,20 @@ spec:
                 description: Status defines the status of the LazySidecar,contains
                   "Succeed" and "Failed"
                 type: string
+              upstream:
+                description: Upstream defines the workload's upstream service
+                items:
+                  properties:
+                    hosts:
+                      items:
+                        type: string
+                      type: array
+                    port:
+                      type: integer
+                    protocol:
+                      type: string
+                  type: object
+                type: array
             required:
             - status
             type: object

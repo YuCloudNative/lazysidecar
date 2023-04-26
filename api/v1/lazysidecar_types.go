@@ -73,6 +73,12 @@ type Middleware struct {
 	Protocol    string `json:"protocol"`
 }
 
+type Upstream struct {
+	Port     *int     `json:"port,omitempty"`
+	Protocol string   `json:"protocol,omitempty"`
+	Hosts    []string `json:"hosts,omitempty"`
+}
+
 // LazySidecarStatus defines the observed state of LazySidecar
 type LazySidecarStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -89,7 +95,7 @@ type LazySidecarStatus struct {
 	LastUpdateTimestamp metav1.Time `json:"lastUpdateTimestamp,omitempty"`
 
 	// Upstream defines the workload's upstream service
-	// Upstream []istiov1beta1.IstioEgressListener `json:"upstream,omitempty"`
+	Upstream []Upstream `json:"upstream,omitempty"`
 
 	// SidecarName defines the Sidecar name which is derived from LaySidecar
 	// +optional

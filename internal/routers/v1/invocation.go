@@ -153,7 +153,7 @@ func (i Invocation) ParseWorkloadLabels(sourceMetadata string) (map[string]strin
 			workloadSelector[k] = v.GetStringValue()
 		}
 	}
-	log.Info("%#v\n", workloadSelector)
+	log.Infof("%#v\n", workloadSelector)
 
 	sn := mdFields[nodeNamespaceKey].GetStringValue()
 	if len(sn) == 0 {
